@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>KPI Card</title>
+  <link rel="stylesheet" href="styles/main.css"/>
+</head>
+<body>
+  <div id="root">
+
+    <!-- Empty state: shown until both shelves have fields -->
+    <div id="empty" class="empty">
+      <div class="empty-title">KPI Card</div>
+      <p class="empty-body">
+        Drag a field onto each shelf on the Marks card:
+      </p>
+      <ul class="empty-list">
+        <li><span class="shelf">Measure</span> a continuous measure &mdash; the number to total, e.g. Sales</li>
+        <li><span class="shelf">Date</span> a date field &mdash; the timeline, e.g. Order Date</li>
+      </ul>
+      <p class="empty-note" id="empty-note"></p>
+    </div>
+
+    <!-- The card -->
+    <div id="card" class="card layout-stacked" hidden>
+      <button id="gear" class="gear" type="button" title="Card settings" aria-label="Card settings">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path fill="currentColor" d="M8 5.2A2.8 2.8 0 1 0 8 10.8 2.8 2.8 0 0 0 8 5.2zm0 4.4A1.6 1.6 0 1 1 8 6.4a1.6 1.6 0 0 1 0 3.2z"/>
+          <path fill="currentColor" d="M14 9.1V6.9l-1.7-.3a4.6 4.6 0 0 0-.5-1.2l1-1.4-1.6-1.6-1.4 1a4.6 4.6 0 0 0-1.2-.5L8.3 1H6.9l-.3 1.7a4.6 4.6 0 0 0-1.2.5l-1.4-1-1.6 1.6 1 1.4a4.6 4.6 0 0 0-.5 1.2L1 6.9v2.2l1.7.3c.1.4.3.8.5 1.2l-1 1.4 1.6 1.6 1.4-1c.4.2.8.4 1.2.5l.3 1.7h2.2l.3-1.7c.4-.1.8-.3 1.2-.5l1.4 1 1.6-1.6-1-1.4c.2-.4.4-.8.5-1.2L14 9.1z" opacity=".55"/>
+        </svg>
+      </button>
+
+      <!-- The number block. The status bar belongs to THIS block: it spans the
+           label, the number and the lines beneath, and stops here. -->
+      <div class="block">
+        <div id="statusbar" class="statusbar" hidden></div>
+        <div class="head">
+          <div id="label" class="label">MEASURE</div>
+          <div id="value" class="value">&mdash;</div>
+          <div id="delta" class="delta">
+            <span class="delta-arrow"></span><span class="delta-text"></span>
+          </div>
+          <div id="context" class="context"></div>
+          <div id="asof" class="asof"></div>
+          <div id="goalnote" class="goalnote" hidden></div>
+        </div>
+      </div>
+
+      <div class="chartwrap">
+        <div id="chart" class="chart"></div>
+        <div id="tip" class="tip" hidden></div>
+      </div>
+
+      <div class="stamp" id="stamp">v2.0.0</div>
+    </div>
+
+    <!-- Settings. Optional groups ship collapsed and off by default. -->
+    <div id="settings" class="settings" hidden>
+      <div class="settings-head">
+        <span class="settings-title">Card settings</span>
+        <button id="settings-close" class="settings-close" type="button" aria-label="Close settings">&times;</button>
+      </div>
+
+      <div class="settings-body">
+
+        <!-- Always visible: the three choices that define the number. -->
+        <div class="group">
+          <label class="field">
+            <span class="field-label">Big number shows</span>
+            <select id="metric-mode">
+              <option value="latest">The latest period on its own</option>
+              <option value="ytd">Year to date</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Compare against</span>
+            <select id="compare-mode">
+              <option value="pop">The period before (period over period)</option>
+              <option value="yoy">The same period last year (year over year)</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Period grain</span>
+            <select id="grain">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="quarter">Quarter</option>
+              <option value="year">Year</option>
+            </select>
+          </label>
+          <p class="hint">The grain drives the whole card &mdash; the headline total, the comparison, and the buckets in the trend chart.</p>
+        </div>
+
+        <details class="sect" id="sect-format">
+          <summary>Number format<span class="sect-state" id="state-format"></span></summary>
+          <div class="sect-body">
+            <label class="field">
+              <span class="field-label">Format</span>
+              <select id="fmt-mode">
+                <option value="auto">Auto &mdash; match the Tableau field</option>
+                <option value="number">Number</option>
+                <option value="currency">Currency</option>
+                <option value="percent">Percentage</option>
+              </select>
+            </label>
+
+            <label class="field" id="fmt-symbol-field" hidden>
+              <span class="field-label">Currency symbol</span>
+              <input id="fmt-symbol" type="text" maxlength="3" spellcheck="false"/>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Decimal places</span>
+              <select id="fmt-decimals">
+                <option value="auto">Auto</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </label>
+
+            <label class="field-check">
+              <input id="fmt-abbrev" type="checkbox"/>
+              <span>Abbreviate large numbers ($85,175 &rarr; $85.2K)</span>
+            </label>
+          </div>
+        </details>
+
+        <details class="sect" id="sect-trend">
+          <summary>Trend chart<span class="sect-state" id="state-trend"></span></summary>
+          <div class="sect-body">
+            <label class="field-check">
+              <input id="trend-prior" type="checkbox"/>
+              <span>Show the prior-year line</span>
+            </label>
+            <p class="hint">The chart always spans the calendar year, bucketed at the grain above.</p>
+          </div>
+        </details>
+
+        <details class="sect" id="sect-goal">
+          <summary>Goal tracking<span class="sect-state" id="state-goal"></span></summary>
+          <div class="sect-body">
+            <label class="field-check">
+              <input id="goal-on" type="checkbox"/>
+              <span>Track against a goal</span>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Goal value</span>
+              <input id="goal-value" type="number" step="any" spellcheck="false" placeholder="e.g. 90000"/>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Which direction is good</span>
+              <select id="goal-dir">
+                <option value="higher">Higher is better</option>
+                <option value="lower">Lower is better</option>
+              </select>
+            </label>
+            <p class="hint">Sets the colour of the edge bar beside the number, the delta, and a goal line on the chart.</p>
+          </div>
+        </details>
+
+        <details class="sect" id="sect-look">
+          <summary>Layout &amp; appearance<span class="sect-state" id="state-look"></span></summary>
+          <div class="sect-body">
+            <label class="field">
+              <span class="field-label">Layout</span>
+              <select id="layout">
+                <option value="stacked">Number on top, chart underneath</option>
+                <option value="side">Number on the left, chart beside it</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Colour palette</span>
+              <select id="palette"></select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">Font</span>
+              <select id="font"></select>
+            </label>
+          </div>
+        </details>
+
+      </div>
+
+      <div class="settings-actions">
+        <button id="settings-save" class="btn btn-primary" type="button">Save</button>
+        <button id="settings-cancel" class="btn" type="button">Cancel</button>
+        <button id="settings-reset" class="btn btn-quiet" type="button">Reset</button>
+      </div>
+    </div>
+
+    <!-- Diagnostics: DEBUG is false in main.js. Flip it to true to show this. -->
+    <div id="debug" class="debug" hidden></div>
+  </div>
+
+  <script src="tableau.extensions.1.latest.min.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

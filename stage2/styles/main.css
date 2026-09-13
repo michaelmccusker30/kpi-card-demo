@@ -1,0 +1,464 @@
+/* ---------------------------------------------------------------
+   KPI Card — Tableau viz extension
+   Palette and font come from settings; --accent and --prior are set
+   on #root by main.js. Everything else follows the project design
+   standards.
+   --------------------------------------------------------------- */
+
+:root {
+  --bg: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --border: #e2e8f0;
+  --accent: #3b82f6;   /* overridden by the chosen palette */
+  --prior: #94a3b8;    /* overridden by the chosen palette */
+  --up: #16a34a;
+  --down: #dc2626;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+}
+
+/* The hidden attribute must beat any display rule below it.
+   Without this, the empty state stays on screen over the card. */
+[hidden] { display: none !important; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Full-height flex column: the number block takes its natural height and
+   the chart flexes into whatever is left. */
+#root {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px 16px 10px;
+  font-family: var(--font);
+}
+
+/* ---------- empty state ---------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  max-width: 440px;
+}
+.empty-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.empty-body { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.empty-list {
+  margin: 0; padding: 0; list-style: none;
+  font-size: 13px; line-height: 1.7; color: var(--muted);
+}
+.empty-list li { display: flex; gap: 8px; align-items: baseline; }
+.shelf {
+  flex: 0 0 auto;
+  min-width: 64px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.empty-note { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--faint); }
+
+/* ---------- the card ---------- */
+
+.card {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.card.layout-stacked {
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Number on the left, chart beside it. Same content, different arrangement. */
+.card.layout-side {
+  flex-direction: row;
+  align-items: center;
+  gap: 22px;
+}
+.card.layout-side .block { flex: 0 1 auto; min-width: 0; max-width: 48%; }
+.card.layout-side .chartwrap { flex: 1 1 0; min-width: 0; height: 100%; max-height: none; }
+.card.layout-side .chart { margin-top: 0; }
+
+/* The number block. The status bar is a child of THIS block — it spans the
+   label, the number and the lines beneath, and stops where the chart
+   begins. It is never bound to the page. */
+.block {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.statusbar {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  bottom: 1px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--faint);
+}
+.statusbar.is-ok { background: var(--up); }
+.statusbar.is-off { background: var(--down); }
+
+/* Only indent when the bar is actually there. */
+.statusbar:not([hidden]) ~ .head { padding-left: 14px; }
+
+.head { min-width: 0; }
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.value {
+  font-size: clamp(28px, 8.5vh, 54px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.delta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.delta.is-up { color: var(--up); }
+.delta.is-down { color: var(--down); }
+.delta.is-flat { color: var(--muted); }
+/* With a goal set, the delta takes the goal's colour so it and the edge
+   bar always say the same thing. */
+.delta.is-goal-ok { color: var(--up); }
+.delta.is-goal-off { color: var(--down); }
+.delta-arrow { font-size: 11px; line-height: 1; }
+.delta-text { overflow: hidden; text-overflow: ellipsis; }
+
+/* What we are comparing against, and what it was worth. */
+.context {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asof {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.goalnote {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.goalnote.is-ok { color: var(--up); }
+.goalnote.is-off { color: var(--down); }
+
+/* ---------- the trend chart ---------- */
+
+.chartwrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Capped here rather than on .chart: with the wrapper capped, the card's
+     own justify-content can centre the whole block in a tall sheet instead
+     of pinning it to the top over a band of dead white space. */
+  max-height: 222px;
+  display: flex;
+}
+
+/* Takes the rest of the height, but capped so it cannot stretch out of
+   proportion in a very tall worksheet. */
+.chart {
+  flex: 1 1 auto;
+  min-height: 48px;
+  margin-top: 12px;
+  width: 100%;
+}
+.chart svg { display: block; }
+
+.tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  min-width: 108px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.10);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: nowrap;
+}
+.tip-head {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.tip-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.tip-key { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sw { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+.sw-cur { background: var(--accent); }
+.sw-pri { background: var(--prior); }
+
+.stamp {
+  position: absolute;
+  left: 16px;
+  bottom: 6px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: #cbd5e1;
+  pointer-events: none;
+}
+
+/* ---------- settings ---------- */
+
+.gear {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  z-index: 6;
+  /* Always present, not hover-only: the control the extension draws itself
+     is the one users will actually find. Subtle until you reach for it. */
+  opacity: 0.45;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+#root:hover .gear { opacity: 0.75; }
+.gear:hover { opacity: 1; color: var(--muted); border-color: var(--border); background: #f8fafc; }
+.gear:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.settings {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 12px;
+  background: var(--bg);
+}
+.settings-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+.settings-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings-close {
+  border: 0; background: transparent;
+  font-size: 20px; line-height: 1;
+  color: var(--faint); cursor: pointer; padding: 0 4px;
+}
+.settings-close:hover { color: var(--text); }
+
+.settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group { display: flex; flex-direction: column; gap: 10px; }
+
+/* Optional groups ship collapsed and off by default — users open them
+   deliberately rather than meeting every control at once. */
+.sect {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #fbfcfe;
+}
+.sect > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  list-style: none;
+}
+.sect > summary::-webkit-details-marker { display: none; }
+.sect > summary::after {
+  content: "\25be";
+  color: var(--faint);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+.sect[open] > summary::after { transform: rotate(180deg); }
+.sect-state {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--faint);
+}
+.sect-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 10px 11px;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+  padding-top: 11px;
+}
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings select,
+.settings input[type="text"],
+.settings input[type="number"] {
+  font: inherit;
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 6px 8px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+}
+.settings select:disabled,
+.settings input:disabled { color: var(--faint); background: #f8fafc; }
+.field-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--faint);
+}
+
+.settings-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  padding-top: 11px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.btn {
+  font: inherit;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:hover { background: #f8fafc; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+.btn-primary:hover { filter: brightness(0.93); }
+.btn-quiet { margin-left: auto; border-color: transparent; color: var(--faint); }
+.btn-quiet:hover { color: var(--muted); }
+
+/* ---------- diagnostics ---------- */
+
+.debug {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.debug .debug-err { color: var(--down); }

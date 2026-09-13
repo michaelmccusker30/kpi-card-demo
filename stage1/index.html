@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>KPI Card</title>
+  <link rel="stylesheet" href="styles/main.css"/>
+</head>
+<body>
+  <div id="root">
+
+    <!-- Empty state: shown until both shelves have fields -->
+    <div id="empty" class="empty">
+      <div class="empty-title">KPI Card</div>
+      <p class="empty-body">
+        Drag a field onto each shelf on the Marks card:
+      </p>
+      <ul class="empty-list">
+        <li><span class="shelf">Measure</span> a continuous measure — the number to total, e.g. Sales</li>
+        <li><span class="shelf">Date</span> a date field — the timeline, e.g. Order Date</li>
+      </ul>
+      <p class="empty-note" id="empty-note"></p>
+    </div>
+
+    <!-- The card -->
+    <div id="card" class="card" hidden>
+      <button id="gear" class="gear" type="button" title="Card settings" aria-label="Card settings">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path fill="currentColor" d="M8 5.2A2.8 2.8 0 1 0 8 10.8 2.8 2.8 0 0 0 8 5.2zm0 4.4A1.6 1.6 0 1 1 8 6.4a1.6 1.6 0 0 1 0 3.2z"/>
+          <path fill="currentColor" d="M14 9.1V6.9l-1.7-.3a4.6 4.6 0 0 0-.5-1.2l1-1.4-1.6-1.6-1.4 1a4.6 4.6 0 0 0-1.2-.5L8.3 1H6.9l-.3 1.7a4.6 4.6 0 0 0-1.2.5l-1.4-1-1.6 1.6 1 1.4a4.6 4.6 0 0 0-.5 1.2L1 6.9v2.2l1.7.3c.1.4.3.8.5 1.2l-1 1.4 1.6 1.6 1.4-1c.4.2.8.4 1.2.5l.3 1.7h2.2l.3-1.7c.4-.1.8-.3 1.2-.5l1.4 1 1.6-1.6-1-1.4c.2-.4.4-.8.5-1.2L14 9.1z" opacity=".55"/>
+        </svg>
+      </button>
+
+      <div class="head">
+        <div id="label" class="label">MEASURE</div>
+        <div id="value" class="value">—</div>
+        <div id="delta" class="delta"><span class="delta-arrow"></span><span class="delta-text"></span></div>
+        <div id="asof" class="asof"></div>
+      </div>
+
+      <div id="chart" class="chart"></div>
+
+      <div class="stamp">v1.0.0</div>
+    </div>
+
+    <!-- Settings, collapsed and off by default -->
+    <div id="settings" class="settings" hidden>
+      <div class="settings-head">
+        <span class="settings-title">Card settings</span>
+        <button id="settings-close" class="settings-close" type="button" aria-label="Close settings">&times;</button>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Number format</span>
+        <select id="fmt-mode">
+          <option value="auto">Auto — match the Tableau field</option>
+          <option value="number">Number</option>
+          <option value="currency">Currency</option>
+          <option value="percent">Percentage</option>
+        </select>
+      </label>
+
+      <label class="field" id="fmt-symbol-field" hidden>
+        <span class="field-label">Currency symbol</span>
+        <input id="fmt-symbol" type="text" maxlength="3" spellcheck="false"/>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Decimal places</span>
+        <select id="fmt-decimals">
+          <option value="auto">Auto</option>
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      </label>
+
+      <label class="field-check">
+        <input id="fmt-abbrev" type="checkbox"/>
+        <span>Abbreviate the big number (85.2K)</span>
+      </label>
+
+      <div class="settings-actions">
+        <button id="settings-save" class="btn btn-primary" type="button">Save</button>
+        <button id="settings-cancel" class="btn" type="button">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Diagnostics: DEBUG is false in main.js. Flip it to true to show this. -->
+    <div id="debug" class="debug" hidden></div>
+  </div>
+
+  <script src="tableau.extensions.1.latest.min.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "kpi-card-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Three staged builds of the KPI Card viz extension, for the SF TUG talk",
+  "scripts": { "start": "node server.js" }
+}

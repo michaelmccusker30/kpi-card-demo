@@ -1,0 +1,627 @@
+/* ---------------------------------------------------------------
+   KPI Card — Tableau viz extension
+
+   Every colour in this file is a palette token, set on the document
+   element by applyTheme() in main.js. Nothing is hard-coded, which is
+   what lets a dark palette work without a second set of rules.
+
+   The values below are only the light defaults, so the page has
+   something sane to paint before the first applyTheme() call.
+   --------------------------------------------------------------- */
+
+:root {
+  --bg: #ffffff;
+  --surface: #fbfcfe;
+  --text: #0f172a;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --border: #e2e8f0;
+  --accent: #3b82f6;
+  --on-accent: #ffffff;
+  --prior: #94a3b8;
+  --up: #16a34a;
+  --down: #dc2626;
+  --shadow: rgba(15, 23, 42, 0.20);
+  --stamp: #cbd5e1;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+}
+
+/* Tells the browser to render native widgets — select menus, scrollbars,
+   the panel's own resize grip — to match a dark palette. */
+html.is-dark { color-scheme: dark; }
+
+/* The hidden attribute must beat any display rule below it.
+   Without this, the empty state stays on screen over the card. */
+[hidden] { display: none !important; }
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Full-height flex column. The card below is the only flexing child, so
+   whatever height Tableau hands the worksheet is height the card gets —
+   it is never centred inside it with dead space top and bottom. */
+#root {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 18px;   /* the bottom strip keeps the chart clear of the stamp */
+  font-family: var(--font);
+}
+
+/* ---------- first load: the instructions on the canvas ---------- */
+
+.empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.empty-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  max-width: 560px;
+  padding-right: 48px;   /* clear of the gear */
+}
+.empty-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.empty-lede {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.empty-list {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.empty-list li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.shelf {
+  flex: 0 0 auto;
+  min-width: 62px;
+  padding: 2px 7px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--accent);
+}
+.shelf-what { min-width: 0; }
+.shelf-what b { color: var(--text); font-weight: 600; }
+.eg {
+  display: block;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.empty-then {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.empty-does {
+  margin: 0 0 12px;
+  padding-left: 16px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.empty-does b { color: var(--text); font-weight: 600; }
+
+.empty-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--faint);
+  max-width: 46em;
+}
+.empty-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.credit {
+  flex: 0 0 auto;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+}
+
+/* ---------- the card ----------
+   Stacked and side-by-side both fill the worksheet. The number block
+   takes its natural height; the chart takes everything that is left. */
+
+.card {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.card.layout-stacked { flex-direction: column; }
+.card.layout-stacked .block { flex: 0 0 auto; }
+.card.layout-stacked .chartwrap { flex: 1 1 auto; min-height: 0; }
+
+/* Number on the left, chart beside it. Same content, different arrangement. */
+.card.layout-side {
+  flex-direction: row;
+  align-items: center;
+  gap: 22px;
+}
+.card.layout-side .block { flex: 0 1 auto; min-width: 0; max-width: 48%; }
+.card.layout-side .chartwrap { flex: 1 1 0; min-width: 0; height: 100%; padding-top: 24px; }
+.card.layout-side .chart { margin-top: 0; }
+
+/* ---------- the number block ----------
+   A goal status bar is a child of THIS block. It spans the block, or the
+   number and its comparison, or the block's top edge — and stops there.
+   It is never bound to the page and never runs beside the chart. */
+
+.block {
+  position: relative;
+  min-width: 0;
+}
+
+.statusbar {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  bottom: 1px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--faint);
+}
+.statusbar.is-ok { background: var(--up); }
+.statusbar.is-off { background: var(--down); }
+
+/* "Across the top" — same element, laid the other way. It stops where the
+   gear begins rather than running under it. */
+.statusbar.is-top {
+  left: 0;
+  right: 44px;
+  top: 0;
+  bottom: auto;
+  width: auto;
+  height: 4px;
+}
+/* Side by side, the gear sits over the chart, not over the block. */
+.card.layout-side .statusbar.is-top { right: 0; }
+
+/* Indent only for the placement actually in use. */
+.block.goal-block .head { padding-left: 14px; }
+.block.goal-top .head { padding-top: 12px; }
+.block.goal-short .core { padding-left: 14px; }
+
+.head { min-width: 0; }
+
+/* The number and its comparison — the pair the short bar annotates. */
+.core { position: relative; min-width: 0; }
+.core-inner { min-width: 0; }
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.value {
+  font-size: clamp(28px, 8.5vh, 54px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.delta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.delta.is-up { color: var(--up); }
+.delta.is-down { color: var(--down); }
+.delta.is-flat { color: var(--muted); }
+/* With a goal set, the delta takes the goal's colour so it and the
+   status bar always say the same thing. */
+.delta.is-goal-ok { color: var(--up); }
+.delta.is-goal-off { color: var(--down); }
+.delta-arrow { font-size: 11px; line-height: 1; }
+.delta-text { overflow: hidden; text-overflow: ellipsis; }
+
+/* What we are comparing against, and what it was worth. */
+.context {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asof {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The "% to goal" readout. The proportion lives here, in words — the
+   bar above stays a solid status colour. */
+.goalnote {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goalnote.is-ok { color: var(--up); }
+.goalnote.is-off { color: var(--down); }
+
+/* ---------- the trend chart ---------- */
+
+.chartwrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.chart {
+  flex: 1 1 auto;
+  min-height: 48px;
+  margin-top: 12px;
+  width: 100%;
+}
+.chart svg { display: block; }
+
+.tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  min-width: 108px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: 0 2px 10px var(--shadow);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: nowrap;
+}
+.tip-head {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.tip-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.tip-key { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.tip-val { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sw { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+.sw-cur { background: var(--accent); }
+.sw-pri { background: var(--prior); }
+
+.stamp {
+  position: absolute;
+  left: 16px;
+  bottom: 6px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--stamp);
+  pointer-events: none;
+}
+
+/* ---------- the gear ----------
+   Comfortably clickable and always present: Tableau does not reliably
+   surface its own configure entry for viz extensions, so this is the
+   control people will actually find. */
+
+.gear {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  z-index: 6;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, color 0.15s ease,
+              border-color 0.15s ease, background 0.15s ease;
+}
+#root:hover .gear { opacity: 0.95; }
+.gear:hover {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.gear:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- the settings pop-out ----------
+   A floating layer, not a drawer inset into the card: a KPI card can be
+   two inches tall, and a form squeezed into that is unusable. Draggable
+   by its header so it can be moved off whatever it covers, and resizable
+   from the corner. main.js sets left/top/width/height inline. */
+
+.panel {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 264px;
+  min-height: 200px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: 0 12px 38px var(--shadow), 0 2px 8px var(--shadow);
+  overflow: hidden;      /* required for the native resize grip */
+  resize: both;
+}
+
+.panel-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px 9px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.panel-head.is-dragging { cursor: grabbing; }
+.panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel-drag-hint {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--faint);
+}
+.panel-x {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 19px;
+  line-height: 1;
+  color: var(--faint);
+  cursor: pointer;
+  padding: 0;
+}
+.panel-x:hover { color: var(--text); background: var(--bg); }
+
+.panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.group { display: flex; flex-direction: column; gap: 10px; }
+
+/* Optional groups ship collapsed and off by default — users open them
+   deliberately rather than meeting every control at once. */
+.sect {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+}
+.sect > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  list-style: none;
+}
+.sect > summary::-webkit-details-marker { display: none; }
+.sect > summary::after {
+  content: "\25be";
+  color: var(--faint);
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+.sect[open] > summary::after { transform: rotate(180deg); }
+.sect-state {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--faint);
+}
+.sect-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 11px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.panel select,
+.panel input[type="text"],
+.panel input[type="number"] {
+  font: inherit;
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 6px 8px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+}
+.panel select:disabled,
+.panel input:disabled { color: var(--faint); background: var(--surface); }
+.field-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.field-check input { accent-color: var(--accent); }
+.hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--faint);
+}
+
+.panel-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.btn {
+  font: inherit;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface); border-color: var(--muted); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { filter: brightness(0.93); border-color: var(--accent); }
+.btn-quiet { margin-left: auto; border-color: transparent; background: transparent; color: var(--faint); }
+.btn-quiet:hover { color: var(--muted); background: transparent; border-color: transparent; }
+
+/* A visible hint at the corner the browser's own resizer lives in. */
+.panel-grip {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, transparent 0 46%, var(--faint) 46% 54%, transparent 54% 100%),
+    linear-gradient(135deg, transparent 0 72%, var(--faint) 72% 80%, transparent 80% 100%);
+  opacity: 0.75;
+}
+
+/* ---------- diagnostics ---------- */
+
+.debug {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.debug .debug-err { color: var(--down); }
