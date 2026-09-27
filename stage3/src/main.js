@@ -1239,6 +1239,13 @@ function drawChart() {
            '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Trend by ' +
            GRAIN_NOUN[model.grain] + ' across ' + model.year + '">');
 
+  // Soft gradient under the current-year line — body without weight,
+  // so the prior-year area stays the quiet background.
+  svg.push('<defs><linearGradient id="kpiCurFill" x1="0" y1="0" x2="0" y2="1">' +
+           '<stop offset="0%" stop-color="' + C_ACCENT + '" stop-opacity="' + (pal.dark ? 0.26 : 0.18) + '"/>' +
+           '<stop offset="100%" stop-color="' + C_ACCENT + '" stop-opacity="0"/>' +
+           '</linearGradient></defs>');
+
   if (crossesZero) {
     svg.push('<line x1="' + padL + '" y1="' + y(0).toFixed(1) + '" x2="' + (w - padR) +
              '" y2="' + y(0).toFixed(1) + '" stroke="' + C_BORDER + '" stroke-width="1"/>');
@@ -1274,6 +1281,7 @@ function drawChart() {
                '" r="2.6" fill="' + C_ACCENT + '"/>');
       return;
     }
+    svg.push('<path d="' + areaPath(seg, x, y, baseY) + '" fill="url(#kpiCurFill)"/>');
     svg.push('<path d="' + linePath(seg, x, y) + '" fill="none" stroke="' + C_ACCENT + '" ' +
              'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>');
   });
