@@ -18,7 +18,7 @@
    encodings seen, columns matched, rows read, and the last render error. */
 var DEBUG = false;
 
-var VERSION = "v2.0.0";
+var VERSION = "v2.1.0";
 var SETTINGS_KEY = "kpiCardConfig";
 
 var MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun",
@@ -167,7 +167,8 @@ function toNumber(dv) {
   return isFinite(n) ? n : null;
 }
 
-/* Returns a local Date at midnight, or null. */
+/* Returns a local Date at midnight, or null. Plain date strings are parsed
+   by hand so a timezone offset can never shift them into another day. */
 function toDate(dv) {
   if (!dv) return null;
   var v = dv.nativeValue;
@@ -181,11 +182,8 @@ function toDate(dv) {
 
   var s = String(v), m;
 
-  m = s.match(/^\d{4}-\d{2}-\d{2}/);                           // YYYY-MM-DD
-  if (m) {
-    var iso = new Date(m[0]);
-    return new Date(iso.getFullYear(), iso.getMonth(), iso.getDate());
-  }
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);                 // YYYY-MM-DD
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
 
   m = s.match(/^(\d{4})-(\d{1,2})$/);                          // YYYY-MM
   if (m) return new Date(+m[1], +m[2] - 1, 1);

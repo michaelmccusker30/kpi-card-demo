@@ -47,5 +47,6 @@ https
     console.log("KPI Card demo serving on https://localhost:" + PORT);
     console.log("  stage 1  https://localhost:" + PORT + "/stage1/index.html");
     console.log("  stage 2  https://localhost:" + PORT + "/stage2/index.html");
+    console.log("  stage 2.1 (fixed)  https://localhost:" + PORT + "/stage2-fixed/index.html");
     console.log("  stage 3  https://localhost:" + PORT + "/stage3/index.html");
   });

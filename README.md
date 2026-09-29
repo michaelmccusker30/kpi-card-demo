@@ -12,17 +12,32 @@ untouched; this one is the production copy.
 kpi-card-demo/
 ├── stage1/  stage2/  stage3/     the three builds (relative paths, so they
 │                                 work under any origin unchanged)
+├── stage2-fixed/                 stage 2 without the date bug (v2.1.0)
 ├── server.js                     one HTTPS server for all three, port 3001
 ├── vercel.json                   static deploy + iframe headers
 ├── set-hosted-url.sh             stamps the real Vercel URL into the manifests
 └── trex/
-    ├── local/   kpi-card-stage{1,2,3}.trex          → localhost:3001
-    └── hosted/  kpi-card-stage{1,2,3}.hosted.trex   → Vercel
+    ├── local/   kpi-card-stage{1,2,2-fixed,3}.trex          → localhost:3001
+    └── hosted/  kpi-card-stage{1,2,2-fixed,3}.hosted.trex   → Vercel
 ```
 
-Each stage has its own extension id (`…kpi-card.stage1`, `.stage2`, `.stage3`),
-so Tableau treats them as three separate extensions and they can sit on three
-sheets at once.
+Each stage has its own extension id (`…kpi-card.stage1`, `.stage2`,
+`.stage2-fixed`, `.stage3`), so Tableau treats them as separate extensions and
+they can sit on separate sheets at once.
+
+## Stage 2 carries the date bug on purpose
+
+`stage2/` reads Tableau's dates as UTC midnight and then takes the local date,
+so west of Greenwich every date lands a day early. The 1st of each month slides
+into the previous month: December 2026 shows **$79.8K** instead of Tableau's
+**$85,175**, and "as of" reads **Dec 29** instead of Dec 30. That is the bug
+prompt 3 reports, and stage 3 fixes it.
+
+It only shows on a machine set to a timezone behind UTC (Pacific is fine). On a
+UTC machine stage 2 looks correct.
+
+`stage2-fixed/` (v2.1.0) is the same build with the dates read correctly, kept
+as a fallback and for side-by-side comparison.
 
 ---
 

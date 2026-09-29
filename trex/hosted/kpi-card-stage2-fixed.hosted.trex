@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
+  <worksheet-extension id="com.michaelmccusker.kpi-card.stage2-fixed" extension-version="2.1.0">
+    <default-locale>en_US</default-locale>
+    <name resource-id="name"/>
+    <description>Stage 2.1 — stage 2 with dates read correctly. Configurable: settings panel, grain, goal tracking, palettes, layout.</description>
+    <author name="Michael McCusker" email="" organization="Michael McCusker" website="https://michael-mccusker.com"/>
+    <min-api-version>1.11</min-api-version>
+    <source-location>
+      <url>https://kpi-card-demo.vercel.app/stage2-fixed/index.html</url>
+    </source-location>
+    <icon/>
+    <encoding id="measure">
+      <display-name resource-id="enc-measure">Measure</display-name>
+      <data-spec><data-type>numeric</data-type></data-spec>
+      <role-spec><role-type>continuous-measure</role-type></role-spec>
+      <fields max-count="1"/>
+    </encoding>
+    <encoding id="date">
+      <display-name resource-id="enc-date">Date</display-name>
+      <data-spec><data-type>temporal</data-type></data-spec>
+      <fields max-count="1"/>
+    </encoding>
+  </worksheet-extension>
+  <resources>
+    <resource id="name"><text locale="en_US">KPI Card — Stage 2.1 (fixed)</text></resource>
+    <resource id="enc-measure"><text locale="en_US">Measure</text></resource>
+    <resource id="enc-date"><text locale="en_US">Date</text></resource>
+  </resources>
+</manifest>
